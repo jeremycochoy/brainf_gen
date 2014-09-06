@@ -7,7 +7,7 @@ import           System.Random
 
 -- A fitness function count how much a program was 'efficient'
 -- according to some contrainsts (output, number of instructions, etc…)
-type FitnessFunction = StMaS -> Int
+type FitnessFunction = StMaS () -> Int
 
 --Probabilities for each symbol to occure
 -- (All the value are summed and the probability is
@@ -23,13 +23,16 @@ pbUnscope = 5
 
 
 -- Genetic simplification : +/- and >/< are merged.
-simplify :: Code -> Code
-simplify Code (a : b : xs) = case (a, b) of
+simplify :: [Sym] -> [Sym]
+simplify (a : b : xs) = case (a, b) of
   (SPlus, SMinus) -> r
   (SMinus, SPlus) -> r
   (SLeft, SRight) -> r
   (SRight, SLeft) -> r
-  _               -> Code (a : b : r)
+  _               -> a : simplify (b : xs)
   where
-    Code r = simplify Code xs
-simplify code = code
+    r = simplify xs
+simplify xs = xs
+
+simplifyCode :: Code -> Code
+simplifyCode = Code . simplify . getSyms

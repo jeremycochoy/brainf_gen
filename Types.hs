@@ -33,7 +33,7 @@ instance Show Sym where
     SUnscope -> "]"
     SUndef   -> " "
 
-data Code = Code [Sym] deriving (Eq)
+data Code = Code {getSyms :: [Sym]} deriving (Eq)
 
 instance Show Code where
   show (Code code) = concat . map show $ code
