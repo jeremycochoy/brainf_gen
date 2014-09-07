@@ -20,7 +20,7 @@ data Sym = SPlus
          | SScope
          | SUnscope
          | SUndef
-         deriving (Eq)
+         deriving (Eq, Bounded, Enum)
 instance Show Sym where
   show sym = case sym of
     SPlus    -> "+"
@@ -58,10 +58,11 @@ data Strip = Strip
   , s_prev     :: [Int8]
   } deriving (Show, Eq)
 
-inc strip = strip { s_current = (s_current strip) + 1}
-dec strip = strip { s_current = (s_current strip) - 1}
-next (Strip c (nh : nt) prev) = Strip nh nt (c : prev)
-prev (Strip c next (ph : pt)) = Strip ph (c : next) pt
+incS strip = strip { s_current = (s_current strip) + 1}
+decS strip = strip { s_current = (s_current strip) - 1}
+nextS (Strip c (nh : nt) prev) = Strip nh nt (c : prev)
+prevS (Strip c next (ph : pt)) = Strip ph (c : next) pt
+setS v strip = strip {s_current = v}
 
 --DIsplay localy the strip (n, value, n)
 showStrip n strip = show first ++ " " ++ show cur ++ " " ++ show second
@@ -78,11 +79,13 @@ data StateMachine = StateMachine
   , _code_tail :: !Code
   , _nb_insts  :: !Int
   , _strip     :: !Strip
+  , _input     :: !String
   , _output    :: !String
+  , _illField  :: Bool -- Set to true if the program "crashed"
   } deriving (Show, Eq)
 
 instance Default StateMachine where
-  def = StateMachine (Code []) (Code []) 0 def ""
+  def = StateMachine (Code []) (Code []) 0 def "" "" False
 
 type StMaS = State StateMachine
 

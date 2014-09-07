@@ -14,17 +14,23 @@ exec lim = do
   sym <- readInst
   case sym of
     SPlus    -> do
-      strip %= inc
+      strip %= incS
     SMinus   -> do
-      strip %= dec
+      strip %= decS
     SLeft    -> do
-      strip %= prev
+      strip %= prevS
     SRight   -> do
-      strip %= next
+      strip %= nextS
     SDot     -> do
       s <- use strip
-      output <>= [chr . fromIntegral $ s_current s]
-    SComma   -> undefined
+      output <>= [chr' . fromIntegral $ s_current s]
+    SComma   -> do
+      instr <- use input
+      case instr of
+        ""       -> setIll
+        (x : xs) -> do
+          input .= xs
+          strip %= setS (fromIntegral . ord $ x)
     SScope   -> do
       s <- use strip
       case s_current s of
@@ -41,7 +47,7 @@ exec lim = do
   -- Choose to continue executing or stop when code finished
   case sym of
     SUndef -> return ()
-    _ | insts >= lim -> return ()
+    _ | insts >= lim -> setIll
     _ | otherwise    -> exec lim
 
 -- Go back to the next instruction after the previous [ related
@@ -64,6 +70,7 @@ gotoEndScopeAux n = do
                       -- we are at the right ].
                       0 -> return ()
                       _ -> gotoEndScopeAux (n - 1)
+        SUndef   -> setIll >> return ()
         _        -> gotoEndScopeAux n
 
 -- Implementation : Count the [ and ].
@@ -71,10 +78,11 @@ gotoStartScopeAux :: Int -> StMaS ()
 gotoStartScopeAux n = do
       sym <- unreadInst
       case sym of
-        SUnscope   -> gotoStartScopeAux (n + 1)
-        SScope -> case n of
+        SUnscope -> gotoStartScopeAux (n + 1)
+        SScope   -> case n of
                       0 -> return ()
                       _ -> gotoStartScopeAux (n - 1)
+        SUndef   -> setIll >> return ()
         _        -> gotoStartScopeAux n
 
 readInst :: StMaS Sym
@@ -98,3 +106,13 @@ unreadInst = do
     Code []      -> return SUndef
   where
     pushCode i = code %= \(Code t) -> Code (i:t)
+
+setIll :: StMaS ()
+setIll = do
+  illField .= True
+
+chr' :: Int -> Char
+chr' x = if x < 0 then
+           chr (x + 256)
+         else
+           chr x
